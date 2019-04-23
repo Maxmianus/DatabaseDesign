@@ -1,4 +1,9 @@
 import MySQLdb
+import datetime
+from datetime import timedelta 
+
+############################    Global variables    ###############################################
+Reader_id = "empty"
 
 ##############################      DB connection   ################################################
 db = MySQLdb.connect("localhost","chris","2765593cD","LibraryTables")  #replace username with your localhost username, password with password, and databaseName with the name of a database
@@ -117,8 +122,7 @@ def printStoreBooks():
 
 #working on       
 def loginReader(username, password):
-    
-    sql = "SELECT username FROM READERS WHERE username ='" + username + "' AND password='" + password + "'"
+    sql = "SELECT username, r_id FROM READERS WHERE username ='" + username + "' AND password='" + password + "'"
     try:
        # Execute the SQL command
        cursor.execute(sql)
@@ -128,13 +132,41 @@ def loginReader(username, password):
           print("invalid login")
           closeClient()
        else:
+          Reader_id = results[1]
           return results[0]
 
     except:
        print ("Error: unable to fecth data")
        
-def CheckoutBook(isbn):
-    print("nothing")
+def CheckoutBook():
+    isbn = raw_input("Enter the book's isbn: ")
+    sql = "UPDATE BOOKS B SET B.quantity = B.quantity - 1 WHERE B.isbn = " + isbn + " AND B.quantity > 0"
+    sql2 = "SELECT isbn, book_location_id FROM BOOKS A WHERE A.isbn = isbn AND A.quantity > 0"
+    sql3 = "INSERT INTO LOANER(r_id, l_id, b_id, return_date, checkout_date) VALUES (%s, %s, %s, %s, %s)"
+    
+    try:
+       # Execute the SQL command
+       cursor.execute(sql)
+       db.commit()
+       
+       cursor.execute(sql2)
+       results = cursor.fetchone()
+       if(results == None):
+          print("invalid login")
+          closeClient()
+       else:
+          Reader_id = results[1]
+          val = (Reader_id, results[1], results[0], setCheckoutDate(), setReturnDate())
+          cursor.execute(sql3, val)
+          db.commit()
+       # Fetch all the rows in a list of lists.
+       #results = cursor.fetchone()
+
+    except:
+       print ("Error: unable to fecth data")
+
+def ReturnBook():
+    print("nothing now..")
 ###############################     Main Menu       ###############################################
 def MenuOne():
     print("\n\n\n")
@@ -183,6 +215,7 @@ def switchLoggedIn(num):
         1: lambda : OptionOne(),
         2: lambda : OptionTwo(),
         4: lambda : closeClient(),
+        5: lambda : CheckoutBook(),
     }
     func = switched.get(num, lambda :'Invalid')
     return func()
@@ -257,6 +290,17 @@ def UserType():
     
     choice = input("Enter the number of the choice you want: ")
     return(choice)
+
+#################################################   Date Functions  ##############################################
+def setCheckoutDate():
+    now = datetime.datetime.now()
+    return now.strftime("%d-%m-%Y")
+
+def setReturnDate():
+    now = datetime.datetime.now()
+    returnDate = timedelta(days=14) #return date is 14 days
+    newDate = (now + returnDate)
+    return newDate.strftime("%d-%m-%Y")
     
 ###################################################     Client side   ###########################################
 #switch statement for menus, unsure will use
