@@ -3,7 +3,7 @@ import datetime
 from datetime import timedelta 
 
 ############################    Global variables    ###############################################
-Reader_id = "empty"
+Current_id = "empty"
 
 ##############################      DB connection   ################################################
 db = MySQLdb.connect("localhost","chris","2765593cD","LibraryTables")  #replace username with your localhost username, password with password, and databaseName with the name of a database
@@ -132,22 +132,37 @@ def loginReader(username, password):
           print("invalid login")
           closeClient()
        else:
-          Reader_id = results[1]
-          return results[0]
+          return results
+
+    except:
+       print ("Error: unable to fecth data")
+
+def loginOwner(username, password):
+    sql = "SELECT username, l_id FROM OWNERS WHERE username ='" + username + "' AND password='" + password + "'"
+    try:
+       # Execute the SQL command
+       cursor.execute(sql)
+       # Fetch all the rows in a list of lists.
+       results = cursor.fetchone()
+       if(results == None):
+          print("invalid login")
+          closeClient()
+       else:
+          return results
 
     except:
        print ("Error: unable to fecth data")
        
-def CheckoutBook():
+def CheckoutBook(r_id):
     isbn = raw_input("Enter the book's isbn: ")
     sql = "UPDATE BOOKS B SET B.quantity = B.quantity - 1 WHERE B.isbn = " + isbn + " AND B.quantity > 0"
-    sql2 = "SELECT isbn, book_location_id FROM BOOKS A WHERE A.isbn = isbn AND A.quantity > 0"
+    sql2 = "SELECT isbn, book_location_id FROM BOOKS A WHERE A.isbn =" + isbn  + " AND A.quantity > 0"
     sql3 = "INSERT INTO LOANER(r_id, l_id, b_id, return_date, checkout_date) VALUES (%s, %s, %s, %s, %s)"
     
     try:
        # Execute the SQL command
        cursor.execute(sql)
-       db.commit()
+       #db.commit()
        
        cursor.execute(sql2)
        results = cursor.fetchone()
@@ -155,8 +170,8 @@ def CheckoutBook():
           print("invalid login")
           closeClient()
        else:
-          Reader_id = results[1]
-          val = (Reader_id, results[1], results[0], setCheckoutDate(), setReturnDate())
+          #Current_id = results[1]
+          val = (r_id, results[1], results[0], setCheckoutDate(), setReturnDate())
           cursor.execute(sql3, val)
           db.commit()
        # Fetch all the rows in a list of lists.
@@ -165,9 +180,62 @@ def CheckoutBook():
     except:
        print ("Error: unable to fecth data")
 
-def ReturnBook():
-    print("nothing now..")
+def ReturnBook(l_id):
+    r_id = raw_input("Enter the Reader's id: ")
+    isbn = raw_input("Enter the Book's id: ")
     
+    sql = "DELETE FROM LOANER WHERE r_id=" + str(r_id) + " AND b_id =" + str(isbn) + " AND l_id=" + str(l_id) 
+    sql1 = "UPDATE BOOKS B SET B.quantity = B.quantity + 1 WHERE B.isbn = " + str(isbn)
+    try:
+       # Execute the SQL command
+       cursor.execute(sql)
+       #db.commit()
+       
+       cursor.execute(sql1)
+       results = cursor.fetchone()
+       db.commit()
+       # Fetch all the rows in a list of lists.
+       #results = cursor.fetchone()
+
+    except:
+       print ("Error: unable to fecth data")
+       
+def AddBook(l_id):
+    title = raw_input("Enter book title: ")
+    author = raw_input("Enter book author: ")
+    published_date = raw_input("Enter published_date: ")
+    quantity = raw_input("Enter quantity: ")
+    
+    sql = "INSERT INTO BOOKS(title, author, published_date, book_location_id, quantity) VALUES (%s, %s, %s, %s, %s)"
+    val = (title, author, published_date, l_id, quantity)
+    
+    try:
+       # Execute the SQL command
+       cursor.execute(sql, val)
+       db.commit()
+
+    except:
+       print ("Error: unable to fecth data")
+
+def ShowInventory(l_id):
+    sql = "SELECT * FROM BOOKS WHERE book_location_id= " + str(l_id)
+    try:
+       # Execute the SQL command
+       cursor.execute(sql)
+       # Fetch all the rows in a list of lists.
+       results = cursor.fetchall()
+       print("Inventory:")
+       print("| title | author | isbn | published date | quantity |")
+       for row in results:
+          title  = row[0]
+          author = row[1]
+          isbn = int(row[2])
+          date = int(row[3])
+          quantity = int(row[5])
+          # Now print fetched result
+          print(title, author, isbn, date, quantity)
+    except:
+       print ("Error: unable to fecth data")
         
 def createReaderAccount():
     fname = raw_input("Enter first name: ")
@@ -189,7 +257,46 @@ def createReaderAccount():
 
     except:
        print ("Error: unable to fecth data")
+       
+def currentCheckedOut(l_id):
+    sql = "SELECT * FROM LOANER WHERE l_id =" + str(l_id)
     
+    try:
+       # Execute the SQL command
+       cursor.execute(sql)
+       # Fetch all the rows in a list of lists.
+       results = cursor.fetchall()
+       print("| Reader ID | Book ID | Checkout Date | Return Date |")
+       for row in results:
+          r_id = row[0]
+          b_id = row[2]
+          checkout = row[3]
+          returnD = row[4]
+          
+          # Now print fetched result
+          print(int(r_id), int(b_id), checkout, returnD)
+    except:
+       print ("Error: unable to fecth data")
+    
+def BooksCheckedOutReader(r_id):
+    sql = "SELECT * FROM LOANER WHERE r_id =" + str(r_id)
+    
+    try:
+       # Execute the SQL command
+       cursor.execute(sql)
+       # Fetch all the rows in a list of lists.
+       results = cursor.fetchall()
+       print("| Reader ID | Book ID | Checkout Date | Return Date |")
+       for row in results:
+          r_id = row[0]
+          b_id = row[2]
+          checkout = row[3]
+          returnD = row[4]
+          
+          # Now print fetched result
+          print(int(r_id), int(b_id), checkout, returnD)
+    except:
+       print ("Error: unable to fecth data")
 ###############################     Main Menu       ###############################################
 def MenuOne():
     print("\n\n\n")
@@ -217,7 +324,7 @@ def closeClient():
     exit()
     
 #################################   Logged In Menu      #########################################################
-def Logged_In_Menu(cUser):
+def Logged_In_Menu(cUser, r_id):
     print("\n\n\n")
     print("*******************************************************************************************")
     print("*                        The Amazing Library System Main Menu                             *")
@@ -227,28 +334,60 @@ def Logged_In_Menu(cUser):
     print("3. Currently Logged in as: " + cUser)
     print("4. Exit")
     print("5. Checkout Book")
+    print("6. Show Checked out Books")
     
     choice = input("Enter the number of the choice you want: ")
-    switchLoggedIn(choice)
+    switchLoggedIn(choice, r_id)
 
     
 #switch statement for selecting which option to run
-def switchLoggedIn(num):
+def switchLoggedIn(num, r_id):
     switched = {
         1: lambda : OptionOne(),
         2: lambda : OptionTwo(),
         4: lambda : closeClient(),
-        5: lambda : CheckoutBook(),
+        5: lambda : CheckoutBook(r_id),
+        6: lambda : BooksCheckedOutReader(r_id),
     }
     func = switched.get(num, lambda :'Invalid')
     return func()
 
+##################################################  Close Database  ##############################################
 #Closes database connection and exits
 def closeClient():
     db.close()
     print("Closing...")
     exit()
     
+###############################################     Owner Menu  #################################################
+
+def Owner_Menu(cUser, l_id):
+    print("\n\n\n")
+    print("*******************************************************************************************")
+    print("*                        The Amazing Library System Owner Menu                            *")
+    print("*******************************************************************************************")
+    print("1. Show Inventory")
+    print("2. Currently Logged in as: " + cUser)
+    print("3. Exit")
+    print("4. Return Book")
+    print("5. Add Book")
+    print("6. Books Currently Checked Out")
+    
+    choice = input("Enter the number of the choice you want: ")
+    switchOwner(choice, l_id)
+
+    
+#switch statement for selecting which option to run
+def switchOwner(num, l_id):
+    switched = {
+        1: lambda : ShowInventory(l_id),
+        3: lambda : closeClient(),
+        4: lambda : ReturnBook(l_id),
+        5: lambda : AddBook(l_id),
+        6: lambda : currentCheckedOut(l_id),
+    }
+    func = switched.get(num, lambda :'Invalid')
+    return func()
     
 ##################################################   Option One   ###############################################
 def OptionOne():
@@ -294,12 +433,7 @@ def switchTwo(num):
     }
     func = switched.get(num, lambda :'Invalid')
     return func()
-###################################################     Other Options   #########################################
-def CreateAccount():
-    print("Nothing so far")
-
-def Login():
-    print("Nothing right now")
+###################################################     First Menu   #########################################
     
 #Login menu to see if the user is anonymous, a reader, or an owner
 def UserType():
@@ -313,8 +447,9 @@ def UserType():
     
     choice = input("Enter the number of the choice you want: ")
     return(choice)
+    
 
-#################################################   Date Functions  ##############################################
+#################################################  Set Date Functions  ##############################################
 def setCheckoutDate():
     now = datetime.datetime.now()
     return now.strftime("%d-%m-%Y")
@@ -348,14 +483,23 @@ elif(userChoice == 1):
     username = raw_input("Enter username: ")
     password = raw_input("Enter password: ")
     currentUser = loginReader(username, password)
-    if(currentUser == None):
+    if(currentUser[0] == None):
         closeClient()
     else:
         while(1):
-            Logged_In_Menu(currentUser)
+            Logged_In_Menu(currentUser[0], currentUser[1])
 elif(userChoice == 4):
     createReaderAccount()
-    closeClient()    
+    closeClient()  
+elif(userChoice == 2):
+    username = raw_input("Enter username: ")
+    password = raw_input("Enter password: ")
+    currentUser = loginOwner(username, password)
+    if(currentUser[0] == None):
+        closeClient()
+    else:
+        while(1):
+            Owner_Menu(currentUser[0], currentUser[1])
 else:
     closeClient()
     
