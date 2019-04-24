@@ -167,6 +167,29 @@ def CheckoutBook():
 
 def ReturnBook():
     print("nothing now..")
+    
+        
+def createReaderAccount():
+    fname = raw_input("Enter first name: ")
+    lname = raw_input("Enter last name: ")
+    phone_number = raw_input("Enter phone number: ")
+    email = raw_input("Enter email: ")
+    username = raw_input("Enter username: ")
+    password = raw_input("Enter password: ")
+    
+    sql = "INSERT INTO READERS(fname, lname, phone_number, email, username, password) VALUES (%s, %s, %s, %s, %s, %s)"
+    val = (fname, lname, phone_number, email, username, password)
+    
+    try:
+       # Execute the SQL command
+          cursor.execute(sql, val)
+          db.commit()
+       # Fetch all the rows in a list of lists.
+       #results = cursor.fetchone()
+
+    except:
+       print ("Error: unable to fecth data")
+    
 ###############################     Main Menu       ###############################################
 def MenuOne():
     print("\n\n\n")
@@ -330,7 +353,9 @@ elif(userChoice == 1):
     else:
         while(1):
             Logged_In_Menu(currentUser)
-        
+elif(userChoice == 4):
+    createReaderAccount()
+    closeClient()    
 else:
     closeClient()
     
