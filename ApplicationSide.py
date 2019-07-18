@@ -2,11 +2,11 @@ import MySQLdb
 import datetime
 from datetime import timedelta 
 
-############################    Global variables    ###############################################
+############################    Global variables    ##############################################
 Current_id = "empty"
 
 ##############################      DB connection   ################################################
-db = MySQLdb.connect("localhost","chris","2765593cD","LibraryTables")  #replace username with your localhost username, password with password, and databaseName with the name of a database
+db = MySQLdb.connect("localhost","username","password","databaseName")  #replace username with your localhost username, password with password, and databaseName with the name of a database
 
 cursor = db.cursor()
 
